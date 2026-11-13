@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      Loom 的宿主只有一个 Activity 与三个 activity-alias。
+      alias 就是「图标与名称的预置组合」：切换 = 启用另一套 alias + 重启应用，
+      这是 Android 平台允许的唯一稳定做法（运行时任意替换图标并不可行）。
+    -->
+    <application
+        android:name=".LoomApp"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_loom"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Loom">
+
+        <activity
+            android:name=".MainActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden|uiMode"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity-alias
+            android:name=".AliasLoom"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_loom"
+            android:label="Loom"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".AliasWeave"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_weave"
+            android:label="织机"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".AliasLab"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_lab"
+            android:label="Loom Lab"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+    </application>
+
+</manifest>

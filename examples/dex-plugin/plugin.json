@@ -1,0 +1,15 @@
+{
+  "id": "hash.logic",
+  "name": "摘要计算",
+  "version": "1.0.0",
+  "layer": "ui",
+  "author": "Loom 示例",
+  "description": "DEX 插件示例：演示「原生 View」与「Compose」两种界面贡献点（服务请放在逻辑层插件里）。",
+  "inject": [],
+  "provides": [],
+  "permissions": [],
+  "runtime": "dex",
+  "entry": "source/plugin.dex",
+  "mainClass": "com.loom.example.HashPlugin",
+  "composeAbi": "2024.09.03"
+}

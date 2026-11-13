@@ -1,0 +1,13 @@
+{
+  "id": "counter.logic",
+  "name": "计数器",
+  "version": "1.0.1",
+  "layer": "logic",
+  "kind": "business",
+  "author": "Loom 示例",
+  "description": "提供 count 服务，并把每次变化发成 count.changed 事件。状态写在插件自己的 state 里。",
+  "inject": ["kv"],
+  "provides": ["count"],
+  "permissions": ["storage"],
+  "entry": "source/main.lua"
+}

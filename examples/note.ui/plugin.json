@@ -1,0 +1,13 @@
+{
+  "id": "note.ui",
+  "name": "织机说明",
+  "version": "1.0.0",
+  "layer": "ui",
+  "author": "Loom 示例",
+  "description": "一个纯排版的 UI 插件，用来验证声明式界面能力。",
+  "inject": [],
+  "provides": [],
+  "permissions": [],
+  "entry": "source/main.lua",
+  "screen": "source/screen.lua"
+}

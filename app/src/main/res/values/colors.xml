@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 与 Compose Token（ui/theme/Token.kt）保持一致，只用于窗口底色，避免启动闪白/闪黑 -->
+    <color name="loom_paper">#F2EFE7</color>
+</resources>

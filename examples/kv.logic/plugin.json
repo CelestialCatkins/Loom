@@ -1,0 +1,13 @@
+{
+  "id": "kv.logic",
+  "name": "键值存储",
+  "version": "1.0.0",
+  "layer": "logic",
+  "kind": "capability",
+  "author": "Loom 示例",
+  "description": "把键值写进项目 data/store.json。能力插件只提供 store 能力，不含任何业务判断。",
+  "inject": [],
+  "provides": ["kv"],
+  "permissions": ["storage"],
+  "entry": "source/main.lua"
+}

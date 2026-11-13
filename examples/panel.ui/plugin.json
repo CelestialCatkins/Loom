@@ -1,0 +1,13 @@
+{
+  "id": "panel.ui",
+  "name": "计数面板",
+  "version": "1.0.0",
+  "layer": "ui",
+  "author": "Loom 示例",
+  "description": "只发意图事件、只读服务，不碰任何逻辑。数值来自 count 服务。",
+  "inject": ["count", "kv"],
+  "provides": [],
+  "permissions": ["storage"],
+  "entry": "source/main.lua",
+  "screen": "source/screen.lua"
+}
