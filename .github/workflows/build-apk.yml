@@ -1,0 +1,86 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Assemble APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK platform and build-tools
+        run: |
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Set up Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Assemble debug APK
+        run: gradle --no-daemon --stacktrace :app:assembleDebug
+
+      - name: Assemble release APK (unsigned)
+        run: gradle --no-daemon --stacktrace :app:assembleRelease
+
+      - name: Collect APKs and checksums
+        run: |
+          mkdir -p out
+          find app/build/outputs/apk -name '*.apk' -exec cp {} out/ \;
+          cd out
+          ls -l
+          sha256sum *.apk | tee SHA256SUMS.txt
+
+      - name: Upload APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: loom-apk-${{ github.run_number }}
+          path: out/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Write build summary
+        if: always()
+        run: |
+          {
+            echo "### Loom APK build"
+            echo ""
+            echo "- Commit: \`${{ github.sha }}\`"
+            echo "- Gradle: 8.7 / AGP 8.5.2 / Kotlin 2.0.21 / JDK 17"
+            echo ""
+            if [ -d out ]; then
+              echo "| APK | Size | SHA-256 |"
+              echo "|---|---|---|"
+              for f in out/*.apk; do
+                [ -e "$f" ] || continue
+                echo "| \`$(basename "$f")\` | $(du -h "$f" | cut -f1) | \`$(sha256sum "$f" | cut -d' ' -f1)\` |"
+              done
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
