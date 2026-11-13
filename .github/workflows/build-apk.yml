@@ -29,15 +29,22 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
+      # The ubuntu-latest image already ships the Android SDK (ANDROID_HOME).
+      # We deliberately avoid android-actions/setup-android, which runs
+      # `sdkmanager tools` — a package that no longer exists in the SDK repo.
       - name: Install SDK platform and build-tools
         run: |
-          yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          set -euo pipefail
+          : "${ANDROID_HOME:?ANDROID_HOME not set by runner image}"
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -maxdepth 3 -type f -name sdkmanager | sort | tail -1)
+          echo "sdkmanager: $SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          echo "--- installed platforms ---"
+          ls "$ANDROID_HOME/platforms"
+          echo "--- installed build-tools ---"
+          ls "$ANDROID_HOME/build-tools"
 
       - name: Set up Gradle 8.7
         uses: gradle/actions/setup-gradle@v4
@@ -73,14 +80,15 @@ jobs:
             echo "### Loom APK build"
             echo ""
             echo "- Commit: \`${{ github.sha }}\`"
-            echo "- Gradle: 8.7 / AGP 8.5.2 / Kotlin 2.0.21 / JDK 17"
+            echo "- Toolchain: Gradle 8.7 / AGP 8.5.2 / Kotlin 2.0.21 / JDK 17 / compileSdk 34"
             echo ""
-            if [ -d out ]; then
+            if [ -d out ] && ls out/*.apk > /dev/null 2>&1; then
               echo "| APK | Size | SHA-256 |"
               echo "|---|---|---|"
               for f in out/*.apk; do
-                [ -e "$f" ] || continue
                 echo "| \`$(basename "$f")\` | $(du -h "$f" | cut -f1) | \`$(sha256sum "$f" | cut -d' ' -f1)\` |"
               done
+            else
+              echo "_No APK produced._"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
