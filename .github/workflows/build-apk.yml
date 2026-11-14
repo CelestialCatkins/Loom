@@ -3,12 +3,13 @@ name: Build APK
 on:
   push:
     branches: [ main ]
+    tags: [ "v*" ]
     paths-ignore:
-      - '**.md'
+      - "**.md"
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: build-apk-${{ github.ref }}
@@ -28,7 +29,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
 
       # The ubuntu-latest image already ships the Android SDK (ANDROID_HOME).
       # We deliberately avoid android-actions/setup-android, which runs
@@ -49,7 +50,7 @@ jobs:
       - name: Set up Gradle 8.7
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.7'
+          gradle-version: "8.7"
 
       - name: Assemble debug APK
         run: gradle --no-daemon --stacktrace :app:assembleDebug
@@ -60,10 +61,11 @@ jobs:
       - name: Collect APKs and checksums
         run: |
           mkdir -p out
-          find app/build/outputs/apk -name '*.apk' -exec cp {} out/ \;
+          find app/build/outputs/apk -name "*.apk" -exec cp {} out/ \;
           cd out
           ls -l
           sha256sum *.apk | tee SHA256SUMS.txt
+          cp app-debug.apk loom-debug.apk
 
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
@@ -73,20 +75,60 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      # 对外提供可直接安装的包：每次构建更新同一个 Release，下载地址固定。
+      - name: Publish installable APK to Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd out
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG="${GITHUB_REF_NAME}"
+            TITLE="Loom ${GITHUB_REF_NAME#v}"
+            PRE=""
+          else
+            TAG="latest"
+            TITLE="Loom 最新构建"
+            PRE="--prerelease"
+          fi
+          SHA=$(sha256sum loom-debug.apk | cut -d" " -f1)
+          SIZE=$(du -h loom-debug.apk | cut -f1)
+          {
+            echo "自动构建的可安装包，debug 签名，可直接侧载。"
+            echo ""
+            echo "- 版本：1.0.0（versionCode 1）"
+            echo "- 提交：`${GITHUB_SHA}`"
+            echo "- 体积：${SIZE}"
+            echo "- SHA-256：`${SHA}`"
+            echo "- 要求：Android 8.0（API 26）以上"
+            echo ""
+            echo "下载下面附件里的 `loom-debug.apk` 即可安装。"
+            echo ""
+            echo "> 这是持续集成产出的调试签名包，每次构建都会替换；正式分发请自行签名。"
+          } > notes.md
+          if ! gh release view "$TAG" > /dev/null 2>&1; then
+            gh release create "$TAG" --title "$TITLE" --notes-file notes.md $PRE --target "$GITHUB_SHA"
+          else
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/git/refs/tags/$TAG" -f sha="$GITHUB_SHA" -F force=true > /dev/null
+            gh release edit "$TAG" --title "$TITLE" --notes-file notes.md $PRE
+          fi
+          gh release upload "$TAG" loom-debug.apk SHA256SUMS.txt --clobber
+          echo "release: https://github.com/$GITHUB_REPOSITORY/releases/tag/$TAG"
+
       - name: Write build summary
         if: always()
         run: |
           {
             echo "### Loom APK build"
             echo ""
-            echo "- Commit: \`${{ github.sha }}\`"
+            echo "- Commit: `${{ github.sha }}`"
             echo "- Toolchain: Gradle 8.7 / AGP 8.5.2 / Kotlin 2.0.21 / JDK 17 / compileSdk 34"
             echo ""
             if [ -d out ] && ls out/*.apk > /dev/null 2>&1; then
               echo "| APK | Size | SHA-256 |"
               echo "|---|---|---|"
               for f in out/*.apk; do
-                echo "| \`$(basename "$f")\` | $(du -h "$f" | cut -f1) | \`$(sha256sum "$f" | cut -d' ' -f1)\` |"
+                echo "| `$(basename "$f")` | $(du -h "$f" | cut -f1) | `$(sha256sum "$f" | cut -d" " -f1)` |"
               done
             else
               echo "_No APK produced._"
